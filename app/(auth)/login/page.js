@@ -5,6 +5,9 @@ import Image from "next/image";
 import { useState } from "react";
 import Icon from "/public/icon.png";
 import { useRouter } from "next/navigation";
+import Swal from "sweetalert2";
+import "../../globals.css";
+import RootLayout from "@/app/layout";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -19,8 +22,18 @@ export default function LoginPage() {
     const data = await login(email, password);
     console.log(data);
     if (data.code == 200) {
-      alert(data.message);
-      r.push("/");
+      Swal.fire({
+        icon: "success",
+        title: "Succesfully Login",
+        customClass: {
+          confirmButton: "my-custom-confirm-button",
+        },
+      }).then((result) => {
+        if (result.isConfirmed) {
+          localStorage.setItem("token", data.token);
+          r.push("/");
+        }
+      });
     } else {
       setError(true);
       setErrMsg(data);
@@ -32,7 +45,7 @@ export default function LoginPage() {
   };
   const backHandler = (e) => {
     e.preventDefault();
-    r.back();
+    r.push("/");
   };
   return (
     <div className="flex mx-auto my-auto h-screen w-full justify-center items-center">

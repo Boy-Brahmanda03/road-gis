@@ -21,7 +21,7 @@ export default function RegisterPage() {
     console.log(data);
     if (data.code == 200) {
       alert(data.message);
-      //   r.push("/");
+      r.push("/login");
     } else {
       setError(true);
       setErrMsg(data);
