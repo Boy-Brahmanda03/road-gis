@@ -9,7 +9,7 @@ const Option = ({ datas, onSelect }) => {
   }
 
   return (
-    <div className="right-0 z-10 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" role="menu" aria-orientation="vertical" aria-labelledby="menu-button" tabIndex="-1">
+    <div className="w-full right-0 z-10 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" role="menu" aria-orientation="vertical" aria-labelledby="menu-button" tabIndex="-1">
       {datas.map((item) => (
         <div key={item.id} className="py-1 w-fit" role="none">
           <button className="text-gray-700 block px-4 py-2 text-sm w-full text-left" role="menuitem" tabIndex="-1" onClick={() => onSelect(item)}>
@@ -21,7 +21,7 @@ const Option = ({ datas, onSelect }) => {
   );
 };
 
-export default function Dropdown({ title }) {
+export default function Dropdown({ title, handleSelect }) {
   const [showProvince, setShowProvince] = useState(false);
   const [showDistrict, setShowDistrict] = useState(false);
   const [showSubDistrict, setShowSubDistrict] = useState(false);
@@ -83,6 +83,7 @@ export default function Dropdown({ title }) {
   const handleVillage = (village) => {
     setSelectedVillage(village);
     setShowVillage(false);
+    handleSelect(village);
   };
 
   const handleProvinceSelect = (province) => {
@@ -112,8 +113,8 @@ export default function Dropdown({ title }) {
   };
 
   return (
-    <div className="relative inline-block text-left">
-      <div className="w-56">
+    <div className="w-full text-left">
+      <div className="w-full">
         <button
           type="button"
           className="inline-flex w-full justify-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"

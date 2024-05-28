@@ -6,8 +6,11 @@ import Swal from "sweetalert2";
 import Navbar from "@/components/navbar";
 import dynamic from "next/dynamic";
 import polyline from "@mapbox/polyline";
-import { addRuasJalan } from "@/lib/road";
-import { data } from "autoprefixer";
+import { addRuasJalan, getJenisJalan, getKondisiJalan, getPerkerasanEksisting } from "@/lib/road";
+import Image from "next/image";
+import close_icon from "/public/close-icon.png";
+import Dropdown from "@/components/dropdown";
+import DropdownRoad from "../dropdownRoad";
 
 const Map = dynamic(() => import("@/components/map"), { ssr: false });
 
@@ -29,23 +32,57 @@ const Form = () => {
   const [distance, setDistance] = useState(0);
   //polyline encoded
   const [encodePos, setEncodePos] = useState();
-
   const [token, setToken] = useState();
-
   const [kodeRuas, setKodeRuas] = useState();
-  const [desaId, setDesaId] = useState("473");
+  const [desaId, setDesaId] = useState();
   const [namaRuas, setNamaRuas] = useState();
   const [lebarRuas, setLebarRuas] = useState();
   const [eksistingId, setEksistingId] = useState();
+  const [eksisting, setEksisting] = useState([]);
   const [kondisiId, setKondisiId] = useState();
+  const [kondisi, setKondisi] = useState([]);
   const [jenisJalanId, setJenisJalanId] = useState();
+  const [jenisJalan, setJenisJalan] = useState([]);
   const [keterangan, setKeterangan] = useState();
+
+  const handleVillageSelect = (village) => {
+    setDesaId(village.id);
+    console.log("Selected Village:", village);
+  };
+
+  const handleKondisiSelect = (value) => {
+    setKondisiId(value);
+  };
+
+  const handleEksistingSelect = (value) => {
+    setEksistingId(value);
+  };
+
+  const handleJenisSelect = (value) => {
+    setJenisJalanId(value);
+  };
 
   const handleMapClick = (position) => {
     console.log("Clicked position:", position);
     setClickedPositions((prevPositions) => [...prevPositions, position]);
     const encodePositions = polyline.encode(clickedPositions);
     setEncodePos(encodePositions);
+  };
+
+  const handleCancel = () => {
+    setDesaId();
+    setKodeRuas();
+    setNamaRuas();
+    setLebarRuas();
+    setEksistingId();
+    setKondisiId();
+    setJenisJalanId();
+    setKeterangan();
+    r.push("/road/add");
+  };
+
+  const handleClose = () => {
+    r.back();
   };
 
   const handleSave = async (e) => {
@@ -60,6 +97,35 @@ const Form = () => {
       alert("Insert gagal");
     }
   };
+
+  useEffect(() => {
+    if (token != null && token != undefined) {
+      getPerkerasanEksisting(token).then((data) => {
+        const transData = data.map((item) => ({
+          id: item.id,
+          value: item.eksisting,
+        }));
+        setEksisting(transData);
+        console.log(transData);
+      });
+
+      getKondisiJalan(token).then((data) => {
+        const transData = data.map((item) => ({
+          id: item.id,
+          value: item.kondisi,
+        }));
+        setKondisi(transData);
+      });
+
+      getJenisJalan(token).then((data) => {
+        const transData = data.map((item) => ({
+          id: item.id,
+          value: item.jenisjalan,
+        }));
+        setJenisJalan(transData);
+      });
+    }
+  }, [token]);
 
   useEffect(() => {
     setToken(localStorage.getItem("token"));
@@ -84,7 +150,9 @@ const Form = () => {
           <div className="bg-white shadow-lg rounded-lg flex-1 border border-gray-200">
             <div className="flex mb-3">
               <h2 className="flex-1 font-sans font-bold text-3xl ms-5 my-5 text-black">Add Road Data</h2>
-              <button className="me-8 justify-end items-end">X</button>
+              <button className="me-8 justify-end items-end" onClick={handleClose}>
+                <Image src={close_icon} className="size-6" alt="Close icons created by ariefstudio - Flaticon" width={300} height={300} />
+              </button>
             </div>
             <div className="grid gap-4 mb-4 sm:grid-cols-2 sm:gap-6 sm:mb-5">
               <div className="sm:col-span-2 mx-5">
@@ -116,6 +184,10 @@ const Form = () => {
                   }}
                   required=""
                 />
+              </div>
+              <div className="sm:col-span-2 mx-5">
+                <label className="block mb-2 text-lg font-medium">Letak Ruas Jalan</label>
+                <Dropdown handleSelect={handleVillageSelect} title={"Provinsi"} />
               </div>
               <div className="sm:col-span-2 mx-5">
                 <label className="block mb-2 text-lg font-medium">Paths</label>
@@ -165,49 +237,22 @@ const Form = () => {
                 </div>
               </div>
               <div className="ms-5 md:col-span-1 sm:col-span-2 sm:mx-5">
-                <label className="block mb-2 text-lg font-medium">Eksisting Id</label>
-                <input
-                  type="number"
-                  name="eksisting"
-                  id="eksisting"
-                  className="border border-gray-300 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
-                  placeholder="Eksisting Id"
-                  required=""
-                  value={eksistingId}
-                  onChange={(e) => {
-                    setEksistingId(e.target.value);
-                  }}
-                />
+                <label className="block mb-2 text-lg font-medium">Perkerasan Jalan</label>
+                <div className="border border-gray-300 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5">
+                  <DropdownRoad data={eksisting} handleSelected={handleEksistingSelect} title={"Jenis Pekerasan"} />
+                </div>
               </div>
               <div className="me-5 md:col-span-1 sm:col-span-2 sm:mx-5">
-                <label className="block mb-2 text-lg font-medium">Kondisi Id</label>
-                <input
-                  type="number"
-                  name="kondisi"
-                  id="kondisi"
-                  className="border border-gray-300 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
-                  placeholder="Kondisi ruas jalan"
-                  required=""
-                  value={kondisiId}
-                  onChange={(e) => {
-                    setKondisiId(e.target.value);
-                  }}
-                />
+                <label className="block mb-2 text-lg font-medium">Kondisi Jalan</label>
+                <div className="border border-gray-300 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5">
+                  <DropdownRoad data={kondisi} handleSelected={handleKondisiSelect} title={"Kondisi jalan"} />
+                </div>
               </div>
               <div className="sm:col-span-2 mx-5">
-                <label className="block mb-2 text-lg font-medium">Jenis Jalan Id</label>
-                <input
-                  type="number"
-                  name="jenis"
-                  id="jenis"
-                  className="border border-gray-300 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
-                  placeholder="Jenis ruas jalan"
-                  required=""
-                  value={jenisJalanId}
-                  onChange={(e) => {
-                    setJenisJalanId(e.target.value);
-                  }}
-                />
+                <label className="block mb-2 text-lg font-medium">Jenis Jalan</label>
+                <div className="border border-gray-300 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5">
+                  <DropdownRoad data={jenisJalan} handleSelected={handleJenisSelect} title={"Jenis Jalan"} />
+                </div>
               </div>
               <div className="sm:col-span-2 mx-5">
                 <label className="block mb-2 text-lg font-medium">Keterangan</label>
@@ -225,8 +270,11 @@ const Form = () => {
                 />
               </div>
             </div>
+
             <div className="grid grid-cols-2 gap-4 px-5 object-center mb-4 sm:mb-5">
-              <button className="w-auto h-9 rounded-md bg-red-500 text-white font-semibold">Cancel</button>
+              <button className="w-auto h-9 rounded-md bg-red-500 text-white font-semibold" onClick={handleCancel}>
+                Cancel
+              </button>
               <button className="w-auto h-9 rounded-md bg-green-500 text-white font-semibold" onClick={handleSave}>
                 Save
               </button>
