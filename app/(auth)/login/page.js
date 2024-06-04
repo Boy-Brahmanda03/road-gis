@@ -6,8 +6,6 @@ import { useState } from "react";
 import Icon from "/public/icon.png";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
-import "../../globals.css";
-import RootLayout from "@/app/layout";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");

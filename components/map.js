@@ -7,10 +7,10 @@ import "leaflet/dist/leaflet.css";
 import { deleteRuasJalan, getMasterRuasJalan } from "@/lib/road";
 import polyline from "@mapbox/polyline";
 import { useRouter } from "next/navigation";
+import Swal from "sweetalert2";
 
 const getData = async (token) => {
   const data = await getMasterRuasJalan(token);
-  console.log(data);
   return data;
 };
 
@@ -42,11 +42,8 @@ export default function Map({ centerMap, zoomSize, editable, onClick }) {
   }, []);
 
   useEffect(() => {
-    if (token != null && token != undefined && !editable) {
+    if (token != null && token != undefined) {
       getData(token).then((data) => {
-        console.log(data);
-        // Menyiapkan array untuk menyimpan hasil dekode
-        // Melakukan iterasi pada setiap objek dalam array ruasjalan
         // Decode the polyline paths and store them
         const decodedRoads = data.map((ruas) => ({
           ...ruas,
@@ -67,20 +64,38 @@ export default function Map({ centerMap, zoomSize, editable, onClick }) {
     }
   };
 
-  const handleDelete = async (token, id) => {
-    const res = await deleteRuasJalan(token, id);
-    if (res.status === "failed") {
-      alert(res.message);
-    } else {
-      alert(res.status);
-      const filteredRoads = roads.filter((pos) => {
-        console.log(id);
-        console.log(pos);
-        return pos.id !== id;
-      });
-      setRoads(filteredRoads);
-      r.push("/");
-    }
+  const handleDelete = (token, id) => {
+    Swal.fire({
+      icon: "warning",
+      title: "Are you sure you want to delete this item?",
+      showConfirmButton: false,
+      showDenyButton: true,
+      showCancelButton: true,
+      denyButtonText: "Delete",
+    }).then((result) => {
+      /* Read more about isConfirmed, isDenied below */
+      if (result.isDenied) {
+        deleteRuasJalan(token, id).then((data) => {
+          if (data.status === "failed") {
+            Swal.fire({
+              title: "Failed!",
+              text: data.message,
+              icon: "error",
+            });
+          } else {
+            Swal.fire({
+              title: "Succces!",
+              text: `Succesfully deleted road ${data.ruasjalan.nama_ruas}`,
+              icon: "success",
+            });
+            const filteredRoads = roads.filter((pos) => {
+              return pos.id !== id;
+            });
+            setRoads(filteredRoads);
+          }
+        });
+      }
+    });
   };
 
   return (
@@ -90,30 +105,32 @@ export default function Map({ centerMap, zoomSize, editable, onClick }) {
         {editable && <ClickHandler onClick={handleMapClick} />}
         {roads.map((road, index) => (
           <Polyline key={index} positions={road.decodedPaths} color="green">
-            <Popup>
-              <div>
-                <strong>{road.nama_ruas}</strong>
-                <br />
-                Lokasi: {road.desa_id}
-                <br />
-                Panjang: {road.panjang} meters
-                <br />
-                Lebar: {road.lebar} meters
-                <br />
-                Keterangan: {road.keterangan}
-                <br />
-              </div>
-              <button className="w-full p-3 my-2 text-white font-medium bg-yellow-500 rounded-md border border-gray-200 hover:bg-yellow-700">Edit</button>
-              <button
-                className="w-full p-3 text-white font-medium bg-red-500 rounded-md hover:bg-red-700"
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleDelete(token, road.id);
-                }}
-              >
-                Delete
-              </button>
-            </Popup>
+            {!editable && (
+              <Popup>
+                <div>
+                  <strong>{road.nama_ruas}</strong>
+                  <br />
+                  Lokasi: {road.desa_id}
+                  <br />
+                  Panjang: {road.panjang} meters
+                  <br />
+                  Lebar: {road.lebar} meters
+                  <br />
+                  Keterangan: {road.keterangan}
+                  <br />
+                </div>
+                <button className="w-full p-3 my-2 text-white font-medium bg-yellow-500 rounded-md border border-gray-200 hover:bg-yellow-700">Edit</button>
+                <button
+                  className="w-full p-3 text-white font-medium bg-red-500 rounded-md hover:bg-red-700"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleDelete(token, road.id);
+                  }}
+                >
+                  Delete
+                </button>
+              </Popup>
+            )}
           </Polyline>
         ))}
         {positions.map((pos, index) => (

@@ -7,14 +7,27 @@ import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 
 const LogOutButton = (token) => {
-  const logutHandler = async (e) => {
+  const logutHandler = (e) => {
     e.preventDefault();
-    const data = await logout(token);
-    if (data.code == 200) {
-      alert(data.message);
-      localStorage.clear();
-      window.location.href = "/";
-    }
+    Swal.fire({
+      icon: "warning",
+      title: "Are you sure you want to logged out?",
+      showConfirmButton: false,
+      showDenyButton: true,
+      showCancelButton: true,
+      denyButtonText: "Yes",
+    }).then((result) => {
+      /* Read more about isConfirmed, isDenied below */
+      if (result.isDenied) {
+        logout(token).then((data) => {
+          if (data.code == 200) {
+            alert(data.message);
+            localStorage.clear();
+            window.location.href = "/";
+          }
+        });
+      }
+    });
   };
   return (
     <button className="w-20 h-11 shadow-sm rounded-lg border border-gray-200 hover:shadow-lg" onClick={logutHandler}>
@@ -86,11 +99,18 @@ export default function Navbar() {
           <div className={clsx("items-center justify-between w-full md:flex md:w-auto md:order-1", { hidden: !menuOpen })} id="navbar-cta">
             <ul className="flex flex-col font-medium p-4 md:p-0 mt-4 border border-gray-100 rounded-lg bg-gray-50 md:space-x-8 rtl:space-x-reverse md:flex-row md:mt-0 md:border-0 md:bg-white">
               {loggedIn && (
-                <Link href="/road/add">
-                  <p className="block py-2 px-3 md:p-0 text-black font-semibold rounded md:bg-transparent hover:text-yellow-700 " aria-current="page">
-                    Add Road
-                  </p>
-                </Link>
+                <>
+                  <Link href="/road/data">
+                    <p className="block py-2 px-3 md:p-0 text-black font-semibold rounded md:bg-transparent hover:text-yellow-700 " aria-current="page">
+                      Road Data
+                    </p>
+                  </Link>
+                  <Link href="/road/add">
+                    <p className="block py-2 px-3 md:p-0 text-black font-semibold rounded md:bg-transparent hover:text-yellow-700 " aria-current="page">
+                      Add Road
+                    </p>
+                  </Link>
+                </>
               )}
             </ul>
           </div>

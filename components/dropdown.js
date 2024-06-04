@@ -113,7 +113,7 @@ export default function Dropdown({ title, handleSelect }) {
   };
 
   return (
-    <div className="w-full text-left">
+    <div className="w-full relative inline-block text-left">
       <div className="w-full">
         <button
           type="button"
