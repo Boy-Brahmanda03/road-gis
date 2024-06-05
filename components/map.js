@@ -1,66 +1,40 @@
 "use client";
 
-import { MapContainer, TileLayer, Polyline, useMapEvents, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Polyline, Marker, Popup, FeatureGroup } from "react-leaflet";
+import { EditControl } from "react-leaflet-draw";
 import { useState, useEffect } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import "leaflet-draw/dist/leaflet.draw.css";
 import { deleteRuasJalan, getMasterRuasJalan } from "@/lib/road";
-import polyline from "@mapbox/polyline";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
-
-const getData = async (token) => {
-  const data = await getMasterRuasJalan(token);
-  return data;
-};
 
 const markerIcon = L.icon({
   iconUrl: "https://cdn4.iconfinder.com/data/icons/small-n-flat/24/map-marker-512.png",
   iconSize: [24, 24],
 });
 
-const ClickHandler = ({ onClick }) => {
-  useMapEvents({
-    click(e) {
-      onClick([e.latlng.lat, e.latlng.lng]);
-    },
-  });
-  return null;
-};
-
-export default function Map({ centerMap, zoomSize, editable, onClick }) {
+export default function Map({ centerMap, zoomSize, data, editable = false, onClick }) {
   const r = useRouter();
-  //for new polygon
+  //adding aditional marker
   const [positions, setPositions] = useState([]);
-  //token
   const [token, setToken] = useState();
-  //for polygon in database
-  const [roads, setRoads] = useState([]);
 
   useEffect(() => {
     setToken(localStorage.getItem("token"));
   }, []);
 
-  useEffect(() => {
-    if (token != null && token != undefined) {
-      getData(token).then((data) => {
-        // Decode the polyline paths and store them
-        const decodedRoads = data.map((ruas) => ({
-          ...ruas,
-          decodedPaths: polyline.decode(ruas.paths),
-        }));
-
-        decodedRoads.map((road) => {
-          setRoads((prevDecode) => [...prevDecode, road]);
-        });
-      });
+  if (onClick) {
+    if (positions.length > 0) {
+      onClick(positions);
     }
-  }, [token, editable]);
+  }
 
-  const handleMapClick = (position) => {
-    setPositions((prevPositions) => [...prevPositions, position]);
-    if (onClick) {
-      onClick(position);
+  const handleMarkerClick = () => {
+    console.log("Marker clicked, positions before removal:", positions);
+    if (positions.length > 0) {
+      setPositions((prevPositions) => prevPositions.slice(0, -1));
     }
   };
 
@@ -73,7 +47,6 @@ export default function Map({ centerMap, zoomSize, editable, onClick }) {
       showCancelButton: true,
       denyButtonText: "Delete",
     }).then((result) => {
-      /* Read more about isConfirmed, isDenied below */
       if (result.isDenied) {
         deleteRuasJalan(token, id).then((data) => {
           if (data.status === "failed") {
@@ -84,26 +57,76 @@ export default function Map({ centerMap, zoomSize, editable, onClick }) {
             });
           } else {
             Swal.fire({
-              title: "Succces!",
-              text: `Succesfully deleted road ${data.ruasjalan.nama_ruas}`,
+              title: "Success!",
+              text: `Successfully deleted road ${data.ruasjalan.nama_ruas}`,
               icon: "success",
             });
-            const filteredRoads = roads.filter((pos) => {
-              return pos.id !== id;
-            });
-            setRoads(filteredRoads);
+            setRoads((prevRoads) => prevRoads.filter((road) => road.id !== id));
           }
         });
       }
     });
   };
 
+  const handleEdit = (id) => {
+    r.push(`/road/edit/${id}`);
+  };
+
+  const handleCreated = (e) => {
+    const { layerType, layer } = e;
+    if (layerType === "polyline") {
+      const latlngs = layer.getLatLngs();
+      setPositions(latlngs);
+    }
+  };
+
+  // Handle edited layers
+  const handleEdited = (e) => {
+    const layers = e.layers;
+    const updatedPositions = [];
+
+    layers.eachLayer((layer) => {
+      if (layer instanceof L.Polyline) {
+        updatedPositions.push(layer.getLatLngs());
+      }
+    });
+
+    if (updatedPositions.length > 0) {
+      setPositions(updatedPositions[0]);
+      if (onSave) {
+        onSave(updatedPositions[0]);
+      }
+    }
+  };
+
   return (
-    <>
-      <MapContainer className="h-full rounded-lg" center={centerMap} zoom={zoomSize} scrollWheelZoom={false}>
-        <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-        {editable && <ClickHandler onClick={handleMapClick} />}
-        {roads.map((road, index) => (
+    <MapContainer className="h-full rounded-lg" center={centerMap} zoom={zoomSize} scrollWheelZoom={false}>
+      <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+      <FeatureGroup>
+        {editable && (
+          <EditControl
+            position="topright"
+            onCreated={handleCreated}
+            onEdited={() => {
+              handleEdited
+            }}
+            draw={{
+              polygon: false,
+              rectangle: false,
+              circle: false,
+              circlemarker: false,
+              marker: false,
+            }}
+            edit={{
+              edit: editable,
+              remove: editable,
+            }}
+          />
+        )}
+      </FeatureGroup>
+      {data &&
+        data.length > 0 &&
+        data.map((road, index) => (
           <Polyline key={index} positions={road.decodedPaths} color="green">
             {!editable && (
               <Popup>
@@ -119,7 +142,15 @@ export default function Map({ centerMap, zoomSize, editable, onClick }) {
                   Keterangan: {road.keterangan}
                   <br />
                 </div>
-                <button className="w-full p-3 my-2 text-white font-medium bg-yellow-500 rounded-md border border-gray-200 hover:bg-yellow-700">Edit</button>
+                <button
+                  className="w-full p-3 my-2 text-white font-medium bg-yellow-500 rounded-md border border-gray-200 hover:bg-yellow-700"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleEdit(road.id);
+                  }}
+                >
+                  Edit
+                </button>
                 <button
                   className="w-full p-3 text-white font-medium bg-red-500 rounded-md hover:bg-red-700"
                   onClick={(e) => {
@@ -133,11 +164,21 @@ export default function Map({ centerMap, zoomSize, editable, onClick }) {
             )}
           </Polyline>
         ))}
-        {positions.map((pos, index) => (
-          <Marker key={index} position={pos} icon={markerIcon} />
+      {editable && 
+        positions.map((pos, index) => (
+          <Marker
+            key={index}
+            position={pos}
+            icon={markerIcon}
+            eventHandlers={{
+              click: () => {
+                console.log(`Marker at index ${index} clicked`); // Debug log
+                handleMarkerClick();
+              },
+            }}
+          />
         ))}
         <Polyline positions={positions} color="blue" />
-      </MapContainer>
-    </>
+    </MapContainer>
   );
 }
