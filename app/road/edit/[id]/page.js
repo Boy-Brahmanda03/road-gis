@@ -1,18 +1,18 @@
 "use client";
 
+import Navbar from "@/components/navbar";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
-import Navbar from "@/components/navbar";
 import dynamic from "next/dynamic";
 import polyline from "@mapbox/polyline";
-import { addRuasJalan, getJenisJalan, getKondisiJalan, getMasterRuasJalan, getPerkerasanEksisting } from "@/lib/road";
+import { addRuasJalan, getJenisJalan, getKondisiJalan, getPerkerasanEksisting, getRuasJalanById } from "@/lib/road";
 import Image from "next/image";
 import close_icon from "/public/close-icon.png";
 import Dropdown from "@/components/dropdown";
-import DropdownRoad from "../dropdownRoad";
+import DropdownRoad from "@/app/road/dropdownRoad";
 
-const Map = dynamic(() => import("@/components/map"), { ssr: false });
+const Map = dynamic(() => import("@/app/road/edit/[id]/mapEdit"), { ssr: false });
 
 const calculateDistance = (positions) => {
   let total = 0;
@@ -24,196 +24,33 @@ const calculateDistance = (positions) => {
   return total;
 };
 
-const Form = () => {
-  const r = useRouter();
-  //posisi click marker polyline
-  const [clickedPositions, setClickedPositions] = useState([]);
-  //panjang polyline
-  const [distance, setDistance] = useState(0);
-  //polyline encoded
-  const [encodePos, setEncodePos] = useState();
-  const [token, setToken] = useState();
-  const [roads, setRoads] = useState([]);
-  const [kodeRuas, setKodeRuas] = useState();
-  const [desaId, setDesaId] = useState();
-  const [namaRuas, setNamaRuas] = useState();
-  const [lebarRuas, setLebarRuas] = useState();
-  const [eksistingId, setEksistingId] = useState();
-  const [eksisting, setEksisting] = useState([]);
-  const [kondisiId, setKondisiId] = useState();
-  const [kondisi, setKondisi] = useState([]);
-  const [jenisJalanId, setJenisJalanId] = useState();
-  const [jenisJalan, setJenisJalan] = useState([]);
-  const [keterangan, setKeterangan] = useState();
+const Form = ({ dataDetail }) => {
+  const dataDetailDecode = { ...dataDetail, decodedPaths: polyline.decode(dataDetail.paths) };
+  const [initialData, setInitialData] = useState(dataDetailDecode);
+  console.log(dataDetailDecode.decodedPaths);
+  const [initialPaths, setInitialPaths] = useState(dataDetailDecode.decodedPaths);
+  console.log("intial paths : ", initialPaths);
+  console.log("intial data : ", initialData);
 
-  const handleVillageSelect = (village) => {
-    setDesaId(village.id);
-    console.log("Selected Village:", village);
+  const handleCreated = (e) => {
+    const newPolyline = layer.getLatLngs();
+    setInitialPaths([...initialPaths, newPolyline]);
   };
-
-  const handleKondisiSelect = (value) => {
-    console.log(value);
-    setKondisiId(value);
-  };
-
-  const handleEksistingSelect = (value) => {
-    console.log(value);
-    setEksistingId(value);
-  };
-
-  const handleJenisSelect = (value) => {
-    setJenisJalanId(value);
-  };
-
-  const handleMapClick = (e) => {
-    const { layer, layerType } = e;
-    if (layerType === "polyline") {
-      console.log("Clicked polyline:", layer.getLatLngs());
-      setClickedPositions((prevPositions) => [...prevPositions, ...layer.getLatLngs()]);
-    }
-  };
-
-  const handleMapEdit = (e) => {
-    const { layers } = e;
-
-    const newPositions = [];
-    Object.values(layers._layers).forEach((layer) => {
-      newPositions.push(...layer.getLatLngs());
-    });
-
-    setClickedPositions(newPositions);
-  };
-
-  const handleMapDelete = (e) => {
-    const { layers } = e;
-
-    const deletedPositions = [];
-    Object.values(layers._layers).forEach((layer) => {
-      if (layer instanceof L.Polyline) {
-        deletedPositions.push(...layer.getLatLngs());
-      }
-    });
-
-    console.log("Deleted positions:", deletedPositions);
-
-    setClickedPositions([]);
-  };
-
-  useEffect(() => {
-    if (clickedPositions && clickedPositions.length > 0) {
-      // Flatten the array of LatLng objects
-      console.log(clickedPositions);
-      const flattenedPositions = clickedPositions.flat();
-      console.log(flattenedPositions);
-      const convertedPos = flattenedPositions.map((pos) => [pos.lat, pos.lng]);
-      console.log("Converted positions:", convertedPos);
-
-      const encodePositions = polyline.encode(convertedPos);
-      setEncodePos(encodePositions);
-
-      const length = calculateDistance(convertedPos);
-      console.log("Distance:", length);
-      setDistance(length);
-    }
-  }, [clickedPositions]);
-
-  const handleCancel = () => {
-    setDesaId();
-    setKodeRuas();
-    setNamaRuas();
-    setLebarRuas();
-    setEksistingId();
-    setKondisiId();
-    setJenisJalanId();
-    setKeterangan();
-    r.push("/road/add");
-  };
-
-  const handleClose = () => {
-    r.back();
-  };
-
-  const handleSave = async (e) => {
-    e.preventDefault();
-    console.log(token, encodePos, desaId, kodeRuas, namaRuas, distance.toFixed(2), lebarRuas, eksistingId, kondisiId, jenisJalanId, keterangan);
-    const addData = await addRuasJalan(token, encodePos, desaId, kodeRuas, namaRuas, distance.toFixed(2), lebarRuas, eksistingId, kondisiId, jenisJalanId, keterangan);
-    console.log(addData);
-    if (addData.code == 200) {
-      Swal.fire({
-        title: "Succces!",
-        text: `Succesfully created road ${addData.ruasjalan.nama_ruas}`,
-        icon: "success",
-      }).then((result) => {
-        if (result.isConfirmed) {
-          r.back();
-        }
-      });
-    } else {
-      Swal.fire({
-        title: "Failed!",
-        text: `Failed create road`,
-        icon: "error",
-      });
-    }
-  };
-
-  useEffect(() => {
-    if (token != null && token != undefined) {
-      getPerkerasanEksisting(token).then((data) => {
-        const transData = data.map((item) => ({
-          id: item.id,
-          value: item.eksisting,
-        }));
-        setEksisting(transData);
-        console.log(transData);
-      });
-
-      getKondisiJalan(token).then((data) => {
-        const transData = data.map((item) => ({
-          id: item.id,
-          value: item.kondisi,
-        }));
-        setKondisi(transData);
-      });
-
-      getJenisJalan(token).then((data) => {
-        const transData = data.map((item) => ({
-          id: item.id,
-          value: item.jenisjalan,
-        }));
-        setJenisJalan(transData);
-      });
-
-      getMasterRuasJalan(token).then((data) => {
-        getMasterRuasJalan(token).then((data) => {
-          const decodedRoads = data.map((ruas) => ({
-            ...ruas,
-            decodedPaths: polyline.decode(ruas.paths),
-          }));
-          setRoads(decodedRoads);
-        });
-      });
-    }
-  }, [token]);
-
-  useEffect(() => {
-    setToken(localStorage.getItem("token"));
-  }, []);
 
   return (
     <div className="grid grid-cols-4 gap-3 h-fit lg:mx-20 px-4 pt-4 pb-4">
-      <div className="w-full h-full rounded-lg col-span-2">
-        <Map centerMap={[-8.794362792742106, 115.1626069720084]} zoomSize={13} editable={true} onCreated={handleMapClick} onEdited={handleMapEdit} onDelete={handleMapDelete} data={roads} />
+      <div className="w-full h-screen rounded-lg col-span-2">
+        <Map centerMap={[initialPaths[0][0], initialPaths[0][1]]} zoomSize={13} editable={true} onCreated={handleCreated} data={initialData} />
       </div>
       <div className="col-span-2 mx-auto w-full">
         <div className="bg-white shadow-lg rounded-lg flex-1 border border-gray-200">
           <div className="flex mb-3">
-            <h2 className="flex-1 font-sans font-bold text-3xl ms-5 my-5 text-black">Add Road Data</h2>
-            <button className="me-8 justify-end items-end" onClick={handleClose}>
+            <h2 className="flex-1 font-sans font-bold text-3xl ms-5 my-5 text-black">Edit Road Data</h2>
+            <button className="me-8 justify-end items-end">
               <Image src={close_icon} className="size-6" alt="Close icons created by ariefstudio - Flaticon" width={300} height={300} />
             </button>
           </div>
-          <div className="grid gap-4 mb-4 sm:grid-cols-2 sm:gap-6 sm:mb-5">
+          {/* <div className="grid gap-4 mb-4 sm:grid-cols-2 sm:gap-6 sm:mb-5">
             <div className="sm:col-span-2 mx-5">
               <label className="block mb-2 text-lg font-medium">Kode Ruas</label>
               <input
@@ -323,24 +160,21 @@ const Form = () => {
               />
             </div>
           </div>
-
           <div className="grid grid-cols-2 gap-4 px-5 object-center mb-4 sm:mb-5">
-            <button className="w-auto h-9 rounded-md bg-red-500 text-white font-semibold" onClick={handleCancel}>
-              Cancel
-            </button>
-            <button className="w-auto h-9 rounded-md bg-green-500 text-white font-semibold" onClick={handleSave}>
-              Save
-            </button>
-          </div>
+            <button className="w-auto h-9 rounded-md bg-red-500 text-white font-semibold">Cancel</button>
+            <button className="w-auto h-9 rounded-md bg-green-500 text-white font-semibold">Save</button>
+          </div> */}
         </div>
       </div>
     </div>
   );
 };
 
-export default function AddPage() {
+export default function EditPage({ params }) {
   const [token, setToken] = useState();
+  const [id, setId] = useState();
   const router = useRouter();
+  const [roadData, setRoadData] = useState();
 
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
@@ -359,11 +193,24 @@ export default function AddPage() {
     }
   }, [router]);
 
+  useEffect(() => {
+    setId(params.id);
+  }, [params.id]);
+
+  useEffect(() => {
+    if (token != null || token != undefined) {
+      getRuasJalanById(token, id).then((data) => {
+        setRoadData(data);
+      });
+    }
+  }, [token, id]);
+
   return (
     <>
       {token ? (
         <div>
-          <Navbar /> <Form />
+          <Navbar />
+          {roadData && <Form dataDetail={roadData} />}
         </div>
       ) : (
         <p>Token Tidak Ditemukan</p>

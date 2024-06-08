@@ -53,6 +53,10 @@ export default function MasterPage() {
     r.push("/road/add");
   };
 
+  const editHandler = (id) => {
+    r.push(`/road/edit/${id}`);
+  };
+
   const deleteHandler = (id) => {
     if (token != null || token != undefined) {
       Swal.fire({
@@ -172,7 +176,15 @@ export default function MasterPage() {
                   </td>
                   <td className="px-4 py-4">{road.keterangan}</td>
                   <td className="px-4 py-4">
-                    <button className="py-2 w-20 bg-yellow-400 rounded-lg text-white hover:bg-yellow-700">Edit</button>
+                    <button
+                      className="py-2 w-20 bg-yellow-400 rounded-lg text-white hover:bg-yellow-700"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        editHandler(road.id);
+                      }}
+                    >
+                      Edit
+                    </button>
                   </td>
                   <td className="px-4 py-4">
                     <button

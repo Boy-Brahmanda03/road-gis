@@ -9,13 +9,7 @@ import "leaflet-draw/dist/leaflet.draw.css";
 import Swal from "sweetalert2";
 import { useRouter } from "next/navigation";
 
-// Reusable icon configuration
-const markerIcon = L.icon({
-  iconUrl: "https://cdn4.iconfinder.com/data/icons/small-n-flat/24/map-marker-512.png",
-  iconSize: [24, 24],
-});
-
-export default function Map({ centerMap, zoomSize, data, editable = false, onCreated, onEdited, onDelete }) {
+export default function MapEdit({ centerMap, zoomSize, data, editable = false, onCreated, onEdited, onDelete }) {
   const r = useRouter();
   const [token, setToken] = useState();
 
@@ -85,46 +79,7 @@ export default function Map({ centerMap, zoomSize, data, editable = false, onCre
           />
         )}
       </FeatureGroup>
-      {data &&
-        data.length > 1 &&
-        data.map((road, index) => (
-          <Polyline key={index} positions={road.decodedPaths} color="green">
-            {!editable && (
-              <Popup>
-                <div>
-                  <strong>{road.nama_ruas}</strong>
-                  <br />
-                  Lokasi: {road.desa_id}
-                  <br />
-                  Panjang: {road.panjang} meters
-                  <br />
-                  Lebar: {road.lebar} meters
-                  <br />
-                  Keterangan: {road.keterangan}
-                  <br />
-                </div>
-                <button
-                  className="w-full p-3 my-2 text-white font-medium bg-yellow-500 rounded-md border border-gray-200 hover:bg-yellow-700"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleEdit(road.id);
-                  }}
-                >
-                  Edit
-                </button>
-                <button
-                  className="w-full p-3 text-white font-medium bg-red-500 rounded-md hover:bg-red-700"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleDelete(road.id);
-                  }}
-                >
-                  Delete
-                </button>
-              </Popup>
-            )}
-          </Polyline>
-        ))}
+      {data && <Polyline positions={data.decodedPaths} color="green"></Polyline>}
     </MapContainer>
   );
 }

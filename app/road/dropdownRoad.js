@@ -1,8 +1,8 @@
 "use client";
 import { useState } from "react";
 
-export default function DropdownRoad({ data, handleSelected, title }) {
-  const [selectedValue, setSelectedValue] = useState();
+export default function DropdownRoad({ data, handleSelected, title, initialValue }) {
+  const [selectedValue, setSelectedValue] = useState(initialValue);
   const [showOption, setShowOption] = useState(false);
 
   const handleOption = (item) => {
