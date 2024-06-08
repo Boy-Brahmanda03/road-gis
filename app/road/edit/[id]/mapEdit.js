@@ -1,85 +1,63 @@
-"use client";
-
-import { MapContainer, TileLayer, Polyline, Marker, Popup, FeatureGroup } from "react-leaflet";
+import React, { useState, useEffect } from "react";
+import { MapContainer, TileLayer, FeatureGroup, Polyline } from "react-leaflet";
 import { EditControl } from "react-leaflet-draw";
-import { useState, useEffect } from "react";
-import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet-draw/dist/leaflet.draw.css";
-import Swal from "sweetalert2";
-import { useRouter } from "next/navigation";
 
-export default function MapEdit({ centerMap, zoomSize, data, editable = false, onCreated, onEdited, onDelete }) {
-  const r = useRouter();
-  const [token, setToken] = useState();
-
-  const [mapData, setData] = useState([data]);
+const MapComponent = ({ initialPaths }) => {
+  const [features, setFeatures] = useState([]);
 
   useEffect(() => {
-    setToken(localStorage.getItem("token"));
-  }, []);
-
-  // Handle delete event with confirmation
-  const handleDelete = (id) => {
-    Swal.fire({
-      icon: "warning",
-      title: "Are you sure you want to delete this item?",
-      showConfirmButton: false,
-      showDenyButton: true,
-      showCancelButton: true,
-      denyButtonText: "Delete",
-    }).then((result) => {
-      if (result.isDenied) {
-        deleteRuasJalan(token, id).then((data) => {
-          if (data.status === "failed") {
-            Swal.fire({
-              title: "Failed!",
-              text: data.message,
-              icon: "error",
-            });
-          } else {
-            Swal.fire({
-              title: "Success!",
-              text: `Successfully deleted road ${data.ruasjalan.nama_ruas}`,
-              icon: "success",
-            });
-            // Update the roads data if needed
-          }
-        });
-      }
-    });
-  };
-
-  // Handle edit event
-  const handleEdit = (id) => {
-    r.push(`/road/edit/${id}`);
-  };
+    if (initialPaths && initialPaths.length > 0) {
+      const initialFeature = {
+        type: "Feature",
+        properties: {},
+        geometry: {
+          type: "LineString",
+          coordinates: initialPaths,
+        },
+      };
+      setFeatures([initialFeature]);
+    }
+  }, [initialPaths]);
 
   return (
-    <MapContainer className="h-full rounded-lg" center={centerMap} zoom={zoomSize} scrollWheelZoom={false}>
-      <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+    <MapContainer center={[initialPaths[0][0], initialPaths[0][1]]} zoom={13} style={{ height: "100vh", width: "100%" }}>
+      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
       <FeatureGroup>
-        {editable && (
-          <EditControl
-            position="topright"
-            onCreated={onCreated}
-            onEdited={onEdited}
-            onDeleted={onDelete}
-            draw={{
-              polygon: false,
-              rectangle: false,
-              circle: false,
-              circlemarker: false,
-              marker: false,
-            }}
-            edit={{
-              edit: editable,
-              remove: editable,
-            }}
-          />
-        )}
+        <EditControl
+          position="topright"
+          onCreated={(e) => {
+            const layer = e.layer;
+            const newFeature = layer.toGeoJSON();
+            setFeatures([...features, newFeature]);
+          }}
+          onEdited={(e) => {
+            const layers = e.layers;
+            layers.eachLayer((layer) => {
+              const updatedFeature = layer.toGeoJSON();
+              setFeatures(features.map((f) => (f.id === updatedFeature.id ? updatedFeature : f)));
+            });
+          }}
+          onDeleted={(e) => {
+            const layers = e.layers;
+            layers.eachLayer((layer) => {
+              const deletedFeature = layer.toGeoJSON();
+              setFeatures(features.filter((f) => f.id !== deletedFeature.id));
+            });
+          }}
+          draw={{
+            polygon: false,
+            rectangle: false,
+            circle: false,
+            marker: false,
+            circlemarker: false,
+          }}
+        />
+        {features.map((feature, index) => feature.geometry.type === "LineString" && <Polyline key={index} positions={feature.geometry.coordinates.map((coord) => [coord[0], coord[1]])} />)}
       </FeatureGroup>
-      {data && <Polyline positions={data.decodedPaths} color="green"></Polyline>}
     </MapContainer>
   );
-}
+};
+
+export default MapComponent;

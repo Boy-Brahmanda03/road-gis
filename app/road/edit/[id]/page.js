@@ -40,7 +40,7 @@ const Form = ({ dataDetail }) => {
   return (
     <div className="grid grid-cols-4 gap-3 h-fit lg:mx-20 px-4 pt-4 pb-4">
       <div className="w-full h-screen rounded-lg col-span-2">
-        <Map centerMap={[initialPaths[0][0], initialPaths[0][1]]} zoomSize={13} editable={true} onCreated={handleCreated} data={initialData} />
+        <Map initialPaths={initialPaths} />
       </div>
       <div className="col-span-2 mx-auto w-full">
         <div className="bg-white shadow-lg rounded-lg flex-1 border border-gray-200">
