@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { MapContainer, TileLayer, FeatureGroup, Polyline } from "react-leaflet";
 import { EditControl } from "react-leaflet-draw";
 import "leaflet/dist/leaflet.css";
 import "leaflet-draw/dist/leaflet.draw.css";
 
-const MapComponent = ({ initialPaths }) => {
+const MapComponent = ({ initialPaths, setInitialPaths }) => {
   const [features, setFeatures] = useState([]);
 
   useEffect(() => {
@@ -21,6 +21,27 @@ const MapComponent = ({ initialPaths }) => {
     }
   }, [initialPaths]);
 
+  const handleEdit = (e) => {
+    const layers = e.layers;
+    const newPositions = [];
+    Object.values(layers._layers).forEach((layer) => {
+      const latLngs = layer.getLatLngs();
+      latLngs.forEach((latLng) => {
+        newPositions.push([latLng.lat, latLng.lng]);
+      });
+    });
+    const newFeature = {
+      type: "Feature",
+      properties: {},
+      geometry: {
+        type: "LineString",
+        coordinates: newPositions,
+      },
+    };
+    setFeatures([newFeature]);
+    setInitialPaths(newPositions);
+  };
+
   return (
     <MapContainer center={[initialPaths[0][0], initialPaths[0][1]]} zoom={13} style={{ height: "100vh", width: "100%" }}>
       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
@@ -32,13 +53,7 @@ const MapComponent = ({ initialPaths }) => {
             const newFeature = layer.toGeoJSON();
             setFeatures([...features, newFeature]);
           }}
-          onEdited={(e) => {
-            const layers = e.layers;
-            layers.eachLayer((layer) => {
-              const updatedFeature = layer.toGeoJSON();
-              setFeatures(features.map((f) => (f.id === updatedFeature.id ? updatedFeature : f)));
-            });
-          }}
+          onEdited={handleEdit}
           onDeleted={(e) => {
             const layers = e.layers;
             layers.eachLayer((layer) => {

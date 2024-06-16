@@ -145,7 +145,7 @@ const Form = () => {
         icon: "success",
       }).then((result) => {
         if (result.isConfirmed) {
-          r.back();
+          r.push("/");
         }
       });
     } else {

@@ -5,6 +5,7 @@ import { getMasterRuasJalan } from "@/lib/road";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import polyline from "@mapbox/polyline";
+import PieChart from "@/components/pieChart";
 
 const Map = dynamic(() => import("@/components/map"), { ssr: false });
 

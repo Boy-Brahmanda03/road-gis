@@ -3,23 +3,33 @@
 import { MapContainer, TileLayer, Polyline, Marker, Popup, FeatureGroup } from "react-leaflet";
 import { EditControl } from "react-leaflet-draw";
 import { useState, useEffect } from "react";
-import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet-draw/dist/leaflet.draw.css";
 import Swal from "sweetalert2";
 import { useRouter } from "next/navigation";
-
-// Reusable icon configuration
-const markerIcon = L.icon({
-  iconUrl: "https://cdn4.iconfinder.com/data/icons/small-n-flat/24/map-marker-512.png",
-  iconSize: [24, 24],
-});
+import { deleteRuasJalan } from "@/lib/road";
 
 export default function Map({ centerMap, zoomSize, data, editable = false, onCreated, onEdited, onDelete }) {
   const r = useRouter();
   const [token, setToken] = useState();
 
-  const [mapData, setData] = useState([data]);
+  const [mapData, setData] = useState();
+  const [goodRoad, setGoodRoad] = useState();
+  const [avgRoad, setAvgRoad] = useState();
+  const [badRoad, setBadRoad] = useState();
+
+  useEffect(() => {
+    if (data != null) {
+      setData(data);
+      setGoodRoad(data.filter((road) => road.kondisi_id == 1));
+      setAvgRoad(data.filter((road) => road.kondisi_id == 2));
+      setBadRoad(data.filter((road) => road.kondisi_id == 3));
+    }
+  }, [data]);
+
+  console.log(goodRoad?.length);
+  console.log(avgRoad?.length);
+  console.log(badRoad?.length);
 
   useEffect(() => {
     setToken(localStorage.getItem("token"));
@@ -50,6 +60,8 @@ export default function Map({ centerMap, zoomSize, data, editable = false, onCre
               icon: "success",
             });
             // Update the roads data if needed
+            const filteredRoads = mapData.filter((pos) => pos.id !== id);
+            setData(filteredRoads);
           }
         });
       }
@@ -85,9 +97,9 @@ export default function Map({ centerMap, zoomSize, data, editable = false, onCre
           />
         )}
       </FeatureGroup>
-      {data &&
-        data.length > 1 &&
-        data.map((road, index) => (
+      {mapData &&
+        mapData.length > 1 &&
+        mapData.map((road, index) => (
           <Polyline key={index} positions={road.decodedPaths} color="green">
             {!editable && (
               <Popup>
