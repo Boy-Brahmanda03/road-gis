@@ -21,7 +21,11 @@ const LogOutButton = (token) => {
       if (result.isDenied) {
         logout(token).then((data) => {
           if (data.code == 200) {
-            alert(data.message);
+            Swal.fire({
+              title: "Success!",
+              text: `Successfully logged out!`,
+              icon: "success",
+            });
             localStorage.clear();
             window.location.href = "/";
           }

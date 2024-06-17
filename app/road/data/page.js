@@ -6,10 +6,10 @@ import Navbar from "@/components/navbar";
 import { deleteRuasJalan, getJenisJalan, getKondisiJalan, getMasterRuasJalan, getPerkerasanEksisting } from "@/lib/road";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
-import checkIcon from "/public/icon.png";
 import ReactPaginate from "react-paginate";
 import PieChart from "@/components/pieChart";
 import BarChart from "@/components/barChart";
+import { getMasterRegion } from "@/lib/region";
 
 export default function MasterPage() {
   const [token, setToken] = useState(null);
@@ -23,6 +23,7 @@ export default function MasterPage() {
   const [currentPage, setCurrentPage] = useState(0);
   const [countPerkerasan, setCountPerkerasan] = useState();
   const [countJenis, setCountJenis] = useState();
+  const [masterDataDesa, setMasterDataDesa] = useState();
 
   const r = useRouter();
 
@@ -36,8 +37,11 @@ export default function MasterPage() {
   useEffect(() => {
     if (token) {
       getMasterRuasJalan(token).then((data) => setRoadData(data));
+      getMasterRegion(token).then((data) => setMasterDataDesa(data));
     }
   }, [token]);
+
+  console.log(masterDataDesa);
 
   useEffect(() => {
     if (token) {
@@ -94,15 +98,15 @@ export default function MasterPage() {
 
       // Inisialisasi objek untuk menyimpan jumlah jalan per eksisting_id
       let jumlahEksistingId = {
-        1: 0, // Misalnya jenis eksisting_id 1
-        2: 0, // Misalnya jenis eksisting_id 2
-        3: 0, // Misalnya jenis eksisting_id 3
-        4: 0, // Misalnya jenis eksisting_id 4
-        5: 0, // Misalnya jenis eksisting_id 5
-        6: 0, // Misalnya jenis eksisting_id 6
-        7: 0, // Misalnya jenis eksisting_id 7
-        8: 0, // Misalnya jenis eksisting_id 8
-        9: 0, // Misalnya jenis eksisting_id 9
+        1: 0,
+        2: 0,
+        3: 0,
+        4: 0,
+        5: 0,
+        6: 0,
+        7: 0,
+        8: 0,
+        9: 0,
       };
 
       // Iterasi melalui array jalan-jalan untuk menghitung jumlah
@@ -125,8 +129,14 @@ export default function MasterPage() {
   };
 
   // Determine the data to be displayed on the current page
-  const displayData = roadData.slice(currentPage * 5, (currentPage + 1) * 5);
+  const indexedRoadData = roadData.map((item, index) => ({
+    ...item,
+    index: index + 1,
+  }));
+  const displayData = indexedRoadData.slice(currentPage * 5, (currentPage + 1) * 5);
   const pageCount = Math.ceil(roadData.length / 5);
+
+  console.log(displayData);
 
   // Add road handler
   const addHandler = (e) => {
@@ -191,7 +201,7 @@ export default function MasterPage() {
             </button>
           </div>
         </div>
-        <div className="grid grid-cols-2 p-4 mb-4 gap-4">
+        <div className="grid grid-cols-2 mb-4 gap-4">
           <div className="flex justify-center border border-gray-200 rounded-md p-5 shadow-sm">
             <PieChart
               data={[
@@ -205,16 +215,19 @@ export default function MasterPage() {
             <BarChart valueData={countPerkerasan} labelData={perkerasanJalan.map((data) => data.eksisting)} />
           </div>
         </div>
-        <div className="grid grid-cols-3 p-4 mb-7 gap-4">
-          <Card icon={checkIcon} title={"Bagus"} data={kondisiBagus} type={"bagus"} />
-          <Card icon={checkIcon} title={"Sedang"} data={kondisiSedang} type={"sedang"} />
-          <Card icon={checkIcon} title={"Rusak"} data={kondisiRusak} type={"rusak"} />
+        <div className="justify-center border border-gray-200 rounded-md p-5 shadow-sm mb-7">
+          <h1 className="text-center font-bold">Kondisi Jalan</h1>
+          <div className="flex p-4 gap-6">
+            <Card title={"Bagus"} data={kondisiBagus} type={"bagus"} />
+            <Card title={"Sedang"} data={kondisiSedang} type={"sedang"} />
+            <Card title={"Rusak"} data={kondisiRusak} type={"rusak"} />
+          </div>
         </div>
         <table className="w-full text-left rtl:text-right text-gray-500">
           <thead className="text-xs text-gray-700 uppercase bg-gray-50 text-center">
             <tr>
               <th scope="col" className="px-2 py-3">
-                Id
+                No
               </th>
               <th scope="col" className="px-4 py-3">
                 Nama
@@ -252,10 +265,10 @@ export default function MasterPage() {
             {displayData.map((road) => (
               <tr key={road.id} className="bg-white border-b">
                 <th scope="row" className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
-                  {road.id}
+                  {road.index}
                 </th>
                 <td className="px-4 py-4">{road.nama_ruas}</td>
-                <td className="px-4 py-4">{road.desa_id}</td>
+                <td className="px-4 py-4">{masterDataDesa?.find((data) => data.id == road.desa_id).desa}</td>
                 <td className="px-4 py-4">{road.panjang}</td>
                 <td className="px-4 py-4">{road.lebar}</td>
                 <td className="px-4 py-4">{kondisiJalan.find((data) => data.id === road.kondisi_id)?.kondisi || ""}</td>
